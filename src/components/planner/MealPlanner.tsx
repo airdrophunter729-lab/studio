@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import type { Recipe, Planner, Day, MealSlot } from '@/lib/types'
 import { DAYS, MEAL_SLOTS } from '@/lib/types'
@@ -8,12 +8,58 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
-import { ChefHat, ShoppingCart, Trash2 } from 'lucide-react'
+import { ChefHat, ImageIcon, ShoppingCart, Trash2 } from 'lucide-react'
 import { ShoppingListDialog } from './ShoppingListDialog'
+import { getGeneratedImage } from '@/app/actions'
+import { Skeleton } from '../ui/skeleton'
 
 type MealPlannerProps = {
   recipes: Recipe[]
 }
+
+const RecipeImage = ({ recipe }: { recipe: Recipe }) => {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchImage = async () => {
+      setIsLoading(true);
+      const result = await getGeneratedImage({ prompt: recipe.name });
+      if (result.success && result.data) {
+        setImageUrl(result.data.imageUrl);
+      } else {
+        setImageUrl(recipe.imageUrl);
+      }
+      setIsLoading(false);
+    };
+
+    if (recipe.imageUrl.startsWith('https://placehold.co')) {
+       fetchImage();
+    } else {
+       setImageUrl(recipe.imageUrl);
+       setIsLoading(false);
+    }
+  }, [recipe.name, recipe.imageUrl]);
+
+  if (isLoading) {
+    return <Skeleton className="h-16 w-16" />;
+  }
+
+  if (!imageUrl) {
+     return <div className="flex h-16 w-16 items-center justify-center bg-muted rounded-md"><ImageIcon className="text-muted-foreground" /></div>;
+  }
+
+  return (
+    <Image
+      src={imageUrl}
+      alt={recipe.name}
+      fill
+      className="object-cover"
+      data-ai-hint="recipe ingredient"
+    />
+  );
+};
+
 
 export default function MealPlanner({ recipes }: MealPlannerProps) {
   const [planner, setPlanner] = useState<Planner>({})
@@ -149,13 +195,7 @@ export default function MealPlanner({ recipes }: MealPlannerProps) {
                     )}
                   >
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md">
-                      <Image
-                        src={recipe.imageUrl}
-                        alt={recipe.name}
-                        fill
-                        className="object-cover"
-                        data-ai-hint="recipe ingredient"
-                      />
+                      <RecipeImage recipe={recipe} />
                     </div>
                     <div>
                       <h4 className="font-semibold">{recipe.name}</h4>

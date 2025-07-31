@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   Clock,
   Flame,
+  ImageIcon,
   Utensils,
 } from 'lucide-react'
 import { RECIPES } from '@/lib/data'
@@ -26,9 +27,35 @@ import {
   ChartContainer,
   ChartTooltipContent,
 } from '@/components/ui/chart'
+import { useEffect, useState } from 'react'
+import { getGeneratedImage } from '@/app/actions'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function RecipeDetailPage({ params }: { params: { id: string } }) {
   const recipe = RECIPES.find((r) => r.id === params.id)
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isLoadingImage, setIsLoadingImage] = useState(true);
+
+  useEffect(() => {
+    if (!recipe) return;
+    const fetchImage = async () => {
+      setIsLoadingImage(true);
+      const result = await getGeneratedImage({ prompt: recipe.name });
+      if (result.success && result.data) {
+        setImageUrl(result.data.imageUrl);
+      } else {
+        setImageUrl(recipe.imageUrl);
+      }
+      setIsLoadingImage(false);
+    };
+    
+    if (recipe.imageUrl.startsWith('https://placehold.co')) {
+       fetchImage();
+    } else {
+       setImageUrl(recipe.imageUrl);
+       setIsLoadingImage(false);
+    }
+  }, [recipe]);
 
   if (!recipe) {
     notFound()
@@ -70,13 +97,21 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
       <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         <div className="mx-auto max-w-4xl">
           <div className="relative mb-6 h-64 w-full overflow-hidden rounded-lg md:h-96">
-            <Image
-              src={recipe.imageUrl}
-              alt={recipe.name}
-              fill
-              className="object-cover"
-              data-ai-hint="recipe photography"
-            />
+            {isLoadingImage && <Skeleton className="h-full w-full" />}
+            {!isLoadingImage && imageUrl && (
+              <Image
+                src={imageUrl}
+                alt={recipe.name}
+                fill
+                className="object-cover"
+                data-ai-hint="recipe photography"
+              />
+            )}
+             {!isLoadingImage && !imageUrl && (
+              <div className="flex h-full w-full items-center justify-center bg-muted">
+                <ImageIcon className="h-24 w-24 text-muted-foreground" />
+              </div>
+            )}
           </div>
 
           <p className="mb-6 text-muted-foreground">{recipe.description}</p>
@@ -116,7 +151,7 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Category</CardTitle>
                 <Utensils className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
+              </Header>
               <CardContent>
                  <Badge variant="secondary" className="mt-2 text-sm capitalize">{recipe.category}</Badge>
               </CardContent>
