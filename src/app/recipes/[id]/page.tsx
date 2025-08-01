@@ -80,7 +80,7 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
       label: "Carbs (g)",
       color: "hsl(var(--chart-3))",
     },
-  }
+  };
 
   return (
     <div className="flex h-full flex-col">
