@@ -23,6 +23,7 @@ export async function getGeneratedImage(input: GenerateImageInput) {
     return { success: true, data: result };
   } catch (error) {
     console.error('Error in getGeneratedImage:', error);
+    // Return success as false but don't re-throw to prevent app crashes on rate limits
     return { success: false, error: 'Failed to generate image from AI.' };
   }
 }

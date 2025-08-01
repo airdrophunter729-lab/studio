@@ -16,6 +16,7 @@ import {
 import { RECIPES } from '@/lib/data'
 import { PlusCircle, Search } from 'lucide-react'
 
+// This page remains a client component for interactivity (search, filter)
 export default function RecipeLibraryPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')

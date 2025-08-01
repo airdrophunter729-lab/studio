@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react';
 import {
   Bar,
   BarChart,
@@ -28,32 +29,38 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart'
 import { getGeneratedImage } from '@/app/actions'
-import { Skeleton } from '@/components/ui/skeleton'
+import { RecipeImage } from '@/components/recipes/RecipeImage'
 
-// Asynchronous server component to fetch data before rendering
-export default async function RecipeDetailWrapper({ params }: { params: { id: string } }) {
+// This is now a true Server Component that fetches data and passes it to the client component.
+export default function RecipeDetailPage({ params }: { params: { id: string } }) {
   const recipe = RECIPES.find((r) => r.id === params.id)
   
   if (!recipe) {
     notFound()
   }
 
-  let imageUrl = recipe.imageUrl;
-  // Only generate if it's a placeholder
-  if (recipe.imageUrl.startsWith('https://placehold.co')) {
-    const result = await getGeneratedImage({ prompt: recipe.name });
-    if (result.success && result.data) {
-      imageUrl = result.data.imageUrl;
-    }
-  }
-
   // Pass the fetched data to the client component
-  return <RecipeDetailPageClient recipe={recipe} imageUrl={imageUrl} />;
+  return <RecipeDetailPageClient recipe={recipe} />;
 }
 
 
-// Client component to render the UI
-function RecipeDetailPageClient({ recipe, imageUrl }: { recipe: Recipe, imageUrl: string }) {
+// Client component to render the UI, receiving all data as props.
+function RecipeDetailPageClient({ recipe: initialRecipe }: { recipe: Recipe }) {
+  const [recipe, setRecipe] = useState(initialRecipe);
+
+  useEffect(() => {
+    async function fetchImage() {
+      if (recipe.imageUrl.startsWith('https://placehold.co')) {
+        const result = await getGeneratedImage({ prompt: recipe.name });
+        if (result.success && result.data) {
+          setRecipe(prev => ({...prev, imageUrl: result.data.imageUrl}));
+        }
+      }
+    }
+    fetchImage();
+  }, [recipe.id, recipe.imageUrl, recipe.name]);
+
+
   const nutritionData = [
     { name: 'Protein', value: recipe.nutrients.protein, fill: 'var(--color-protein)' },
     { name: 'Fat', value: recipe.nutrients.fat, fill: 'var(--color-fat)' },
@@ -90,19 +97,7 @@ function RecipeDetailPageClient({ recipe, imageUrl }: { recipe: Recipe, imageUrl
       <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         <div className="mx-auto max-w-4xl">
           <div className="relative mb-6 h-64 w-full overflow-hidden rounded-lg md:h-96">
-            {imageUrl ? (
-              <Image
-                src={imageUrl}
-                alt={recipe.name}
-                fill
-                className="object-cover"
-                data-ai-hint="recipe photography"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-muted">
-                <ImageIcon className="h-24 w-24 text-muted-foreground" />
-              </div>
-            )}
+            <RecipeImage recipe={recipe} imageHint="recipe photography" />
           </div>
 
           <p className="mb-6 text-muted-foreground">{recipe.description}</p>

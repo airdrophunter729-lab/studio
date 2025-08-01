@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import React, { useState } from 'react'
 import Image from 'next/image'
 import type { Recipe, Planner, Day, MealSlot } from '@/lib/types'
 import { DAYS, MEAL_SLOTS } from '@/lib/types'
@@ -8,38 +8,45 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
-import { ChefHat, ImageIcon, ShoppingCart, Trash2 } from 'lucide-react'
+import { ChefHat, ShoppingCart, Trash2 } from 'lucide-react'
 import { ShoppingListDialog } from './ShoppingListDialog'
-import { getGeneratedImage } from '@/app/actions'
-import { Skeleton } from '../ui/skeleton'
+import { RecipeImage } from '../recipes/RecipeImage'
 
-
-async function GeneratedRecipeImage({ recipe }: { recipe: Recipe }) {
-  let imageUrl = recipe.imageUrl;
-  if (recipe.imageUrl.startsWith('https://placehold.co')) {
-    const result = await getGeneratedImage({ prompt: recipe.name });
-    if (result.success && result.data) {
-      imageUrl = result.data.imageUrl;
-    }
-  }
-
-  if (!imageUrl) {
-     return <div className="flex h-16 w-16 items-center justify-center bg-muted rounded-md"><ImageIcon className="text-muted-foreground" /></div>;
-  }
-
+// This is a new client component to render the list of available recipes
+// It receives the recipes with generated image URLs as a prop.
+function AvailableRecipes({ recipes, onRecipeSelect, selectedRecipeId }: { recipes: Recipe[], onRecipeSelect: (recipe: Recipe) => void, selectedRecipeId: string | null }) {
   return (
-    <Image
-      src={imageUrl}
-      alt={recipe.name}
-      fill
-      className="object-cover"
-      data-ai-hint="recipe ingredient"
-    />
-  );
-}
-
-function RecipeImageSkeleton() {
-    return <Skeleton className="h-16 w-16" />;
+    <Card>
+      <CardHeader>
+        <CardTitle>Available Recipes</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="mb-4 text-sm text-muted-foreground">Select a recipe to add it to the planner.</p>
+        <ScrollArea className="h-[60vh]">
+          <div className="space-y-2">
+            {recipes.map((recipe) => (
+              <div
+                key={recipe.id}
+                onClick={() => onRecipeSelect(recipe)}
+                className={cn(
+                  'flex cursor-pointer items-center gap-4 rounded-lg border p-2 transition-all',
+                  selectedRecipeId === recipe.id ? 'border-primary bg-primary/10 shadow-md' : 'hover:bg-muted/80'
+                )}
+              >
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md">
+                  <RecipeImage recipe={recipe} imageHint="recipe ingredient" />
+                </div>
+                <div>
+                  <h4 className="font-semibold">{recipe.name}</h4>
+                  <p className="text-sm text-muted-foreground">{recipe.category}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
+  )
 }
 
 
@@ -104,9 +111,8 @@ export default function MealPlanner({ recipes }: { recipes: Recipe[] }) {
                   </div>
                 ))}
                 {MEAL_SLOTS.map((meal) => (
-                  <>
+                  <React.Fragment key={meal}>
                     <div
-                      key={meal}
                       className="sticky left-0 flex items-center justify-center bg-card p-2 font-bold"
                     >
                       {meal}
@@ -149,7 +155,7 @@ export default function MealPlanner({ recipes }: { recipes: Recipe[] }) {
                         </div>
                       )
                     })}
-                  </>
+                  </React.Fragment>
                 ))}
               </div>
               <ScrollBar orientation="horizontal" />
@@ -159,39 +165,11 @@ export default function MealPlanner({ recipes }: { recipes: Recipe[] }) {
       </div>
 
       <div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Available Recipes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-sm text-muted-foreground">Select a recipe to add it to the planner.</p>
-            <ScrollArea className="h-[60vh]">
-              <div className="space-y-2">
-                {recipes.map((recipe) => (
-                  <div
-                    key={recipe.id}
-                    onClick={() => handleRecipeSelect(recipe)}
-                    className={cn(
-                      'flex cursor-pointer items-center gap-4 rounded-lg border p-2 transition-all',
-                      selectedRecipe?.id === recipe.id ? 'border-primary bg-primary/10 shadow-md' : 'hover:bg-muted/80'
-                    )}
-                  >
-                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md">
-                      <Suspense fallback={<RecipeImageSkeleton />}>
-                        {/* @ts-expect-error Server Component */}
-                        <GeneratedRecipeImage recipe={recipe} />
-                      </Suspense>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">{recipe.name}</h4>
-                      <p className="text-sm text-muted-foreground">{recipe.category}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+        <AvailableRecipes 
+            recipes={recipes} 
+            onRecipeSelect={handleRecipeSelect} 
+            selectedRecipeId={selectedRecipe?.id ?? null} 
+        />
       </div>
 
       <ShoppingListDialog 
