@@ -151,7 +151,7 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Category</CardTitle>
                 <Utensils className="h-4 w-4 text-muted-foreground" />
-              </Header>
+              </CardHeader>
               <CardContent>
                  <Badge variant="secondary" className="mt-2 text-sm capitalize">{recipe.category}</Badge>
               </CardContent>
