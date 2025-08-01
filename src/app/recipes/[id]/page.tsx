@@ -31,31 +31,51 @@ import { useEffect, useState } from 'react'
 import { getGeneratedImage } from '@/app/actions'
 import { Skeleton } from '@/components/ui/skeleton'
 
-export default function RecipeDetailPage({ params }: { params: { id: string } }) {
+// Asynchronous server component to fetch data before rendering
+export default function RecipeDetailWrapper({ params }: { params: { id: string } }) {
   const recipe = RECIPES.find((r) => r.id === params.id)
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [isLoadingImage, setIsLoadingImage] = useState(true);
 
   useEffect(() => {
     if (!recipe) return;
+
     const fetchImage = async () => {
-      setIsLoadingImage(true);
-      const result = await getGeneratedImage({ prompt: recipe.name });
-      if (result.success && result.data) {
-        setImageUrl(result.data.imageUrl);
+      // Only generate if it's a placeholder
+      if (recipe.imageUrl.startsWith('https://placehold.co')) {
+        const result = await getGeneratedImage({ prompt: recipe.name });
+        if (result.success && result.data) {
+          setImageUrl(result.data.imageUrl);
+        } else {
+          setImageUrl(recipe.imageUrl); // Fallback to original placeholder on error
+        }
       } else {
         setImageUrl(recipe.imageUrl);
       }
-      setIsLoadingImage(false);
     };
-    
-    if (recipe.imageUrl.startsWith('https://placehold.co')) {
-       fetchImage();
-    } else {
-       setImageUrl(recipe.imageUrl);
-       setIsLoadingImage(false);
-    }
+
+    fetchImage();
   }, [recipe]);
+
+  if (!recipe) {
+    notFound()
+  }
+
+  // Pass the fetched data to the client component
+  return <RecipeDetailPageClient recipe={recipe} initialImageUrl={imageUrl} />;
+}
+
+
+// Client component to render the UI
+function RecipeDetailPageClient({ recipe, initialImageUrl }: { recipe: any, initialImageUrl: string | null }) {
+  const [imageUrl, setImageUrl] = useState<string | null>(initialImageUrl);
+  const [isLoadingImage, setIsLoadingImage] = useState(!initialImageUrl);
+
+  useEffect(() => {
+    if (initialImageUrl) {
+      setImageUrl(initialImageUrl);
+      setIsLoadingImage(false);
+    }
+  }, [initialImageUrl]);
 
   if (!recipe) {
     notFound()
@@ -162,7 +182,7 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
             <div className="md:col-span-1">
               <h2 className="mb-4 text-2xl font-headline">Ingredients</h2>
               <ul className="space-y-2">
-                {recipe.ingredients.map((ing, i) => (
+                {recipe.ingredients.map((ing: any, i: number) => (
                   <li key={i} className="flex justify-between rounded-md bg-muted/50 p-2">
                     <span>{ing.name}</span>
                     <span className="font-medium">{ing.quantity}</span>
@@ -173,7 +193,7 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
             <div className="md:col-span-2">
               <h2 className="mb-4 text-2xl font-headline">Instructions</h2>
               <ol className="list-inside list-decimal space-y-4">
-                {recipe.instructions.map((step, i) => (
+                {recipe.instructions.map((step: string, i: number) => (
                   <li key={i} className="leading-relaxed">{step}</li>
                 ))}
               </ol>
