@@ -19,7 +19,7 @@ import {
   ImageIcon,
   Utensils,
 } from 'lucide-react'
-import { RECIPES } from '@/lib/data'
+import { RECIPES, type Recipe } from '@/lib/data'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,60 +27,33 @@ import {
   ChartContainer,
   ChartTooltipContent,
 } from '@/components/ui/chart'
-import { useEffect, useState } from 'react'
 import { getGeneratedImage } from '@/app/actions'
 import { Skeleton } from '@/components/ui/skeleton'
 
 // Asynchronous server component to fetch data before rendering
-export default function RecipeDetailWrapper({ params }: { params: { id: string } }) {
+export default async function RecipeDetailWrapper({ params }: { params: { id: string } }) {
   const recipe = RECIPES.find((r) => r.id === params.id)
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!recipe) return;
-
-    const fetchImage = async () => {
-      // Only generate if it's a placeholder
-      if (recipe.imageUrl.startsWith('https://placehold.co')) {
-        const result = await getGeneratedImage({ prompt: recipe.name });
-        if (result.success && result.data) {
-          setImageUrl(result.data.imageUrl);
-        } else {
-          setImageUrl(recipe.imageUrl); // Fallback to original placeholder on error
-        }
-      } else {
-        setImageUrl(recipe.imageUrl);
-      }
-    };
-
-    fetchImage();
-  }, [recipe]);
-
+  
   if (!recipe) {
     notFound()
   }
 
+  let imageUrl = recipe.imageUrl;
+  // Only generate if it's a placeholder
+  if (recipe.imageUrl.startsWith('https://placehold.co')) {
+    const result = await getGeneratedImage({ prompt: recipe.name });
+    if (result.success && result.data) {
+      imageUrl = result.data.imageUrl;
+    }
+  }
+
   // Pass the fetched data to the client component
-  return <RecipeDetailPageClient recipe={recipe} initialImageUrl={imageUrl} />;
+  return <RecipeDetailPageClient recipe={recipe} imageUrl={imageUrl} />;
 }
 
 
 // Client component to render the UI
-function RecipeDetailPageClient({ recipe, initialImageUrl }: { recipe: any, initialImageUrl: string | null }) {
-  const [imageUrl, setImageUrl] = useState<string | null>(initialImageUrl);
-  const [isLoadingImage, setIsLoadingImage] = useState(!initialImageUrl);
-
-  useEffect(() => {
-    if (initialImageUrl) {
-      setImageUrl(initialImageUrl);
-      setIsLoadingImage(false);
-    }
-  }, [initialImageUrl]);
-
-  if (!recipe) {
-    notFound()
-  }
-
+function RecipeDetailPageClient({ recipe, imageUrl }: { recipe: Recipe, imageUrl: string }) {
   const nutritionData = [
     { name: 'Protein', value: recipe.nutrients.protein, fill: 'var(--color-protein)' },
     { name: 'Fat', value: recipe.nutrients.fat, fill: 'var(--color-fat)' },
@@ -117,8 +90,7 @@ function RecipeDetailPageClient({ recipe, initialImageUrl }: { recipe: any, init
       <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         <div className="mx-auto max-w-4xl">
           <div className="relative mb-6 h-64 w-full overflow-hidden rounded-lg md:h-96">
-            {isLoadingImage && <Skeleton className="h-full w-full" />}
-            {!isLoadingImage && imageUrl && (
+            {imageUrl ? (
               <Image
                 src={imageUrl}
                 alt={recipe.name}
@@ -126,8 +98,7 @@ function RecipeDetailPageClient({ recipe, initialImageUrl }: { recipe: any, init
                 className="object-cover"
                 data-ai-hint="recipe photography"
               />
-            )}
-             {!isLoadingImage && !imageUrl && (
+            ) : (
               <div className="flex h-full w-full items-center justify-center bg-muted">
                 <ImageIcon className="h-24 w-24 text-muted-foreground" />
               </div>

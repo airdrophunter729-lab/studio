@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, Suspense } from 'react'
 import Image from 'next/image'
 import type { Recipe, Planner, Day, MealSlot } from '@/lib/types'
 import { DAYS, MEAL_SLOTS } from '@/lib/types'
@@ -13,36 +13,14 @@ import { ShoppingListDialog } from './ShoppingListDialog'
 import { getGeneratedImage } from '@/app/actions'
 import { Skeleton } from '../ui/skeleton'
 
-type MealPlannerProps = {
-  recipes: Recipe[]
-}
 
-const RecipeImage = ({ recipe }: { recipe: Recipe }) => {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchImage = async () => {
-      setIsLoading(true);
-      const result = await getGeneratedImage({ prompt: recipe.name });
-      if (result.success && result.data) {
-        setImageUrl(result.data.imageUrl);
-      } else {
-        setImageUrl(recipe.imageUrl);
-      }
-      setIsLoading(false);
-    };
-
-    if (recipe.imageUrl.startsWith('https://placehold.co')) {
-       fetchImage();
-    } else {
-       setImageUrl(recipe.imageUrl);
-       setIsLoading(false);
+async function GeneratedRecipeImage({ recipe }: { recipe: Recipe }) {
+  let imageUrl = recipe.imageUrl;
+  if (recipe.imageUrl.startsWith('https://placehold.co')) {
+    const result = await getGeneratedImage({ prompt: recipe.name });
+    if (result.success && result.data) {
+      imageUrl = result.data.imageUrl;
     }
-  }, [recipe.name, recipe.imageUrl]);
-
-  if (isLoading) {
-    return <Skeleton className="h-16 w-16" />;
   }
 
   if (!imageUrl) {
@@ -58,10 +36,14 @@ const RecipeImage = ({ recipe }: { recipe: Recipe }) => {
       data-ai-hint="recipe ingredient"
     />
   );
-};
+}
+
+function RecipeImageSkeleton() {
+    return <Skeleton className="h-16 w-16" />;
+}
 
 
-export default function MealPlanner({ recipes }: MealPlannerProps) {
+export default function MealPlanner({ recipes }: { recipes: Recipe[] }) {
   const [planner, setPlanner] = useState<Planner>({})
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null)
   const [isShoppingListOpen, setShoppingListOpen] = useState(false)
@@ -195,7 +177,10 @@ export default function MealPlanner({ recipes }: MealPlannerProps) {
                     )}
                   >
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md">
-                      <RecipeImage recipe={recipe} />
+                      <Suspense fallback={<RecipeImageSkeleton />}>
+                        {/* @ts-expect-error Server Component */}
+                        <GeneratedRecipeImage recipe={recipe} />
+                      </Suspense>
                     </div>
                     <div>
                       <h4 className="font-semibold">{recipe.name}</h4>
