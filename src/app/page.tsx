@@ -1,27 +1,12 @@
 import { AppHeader } from '@/components/AppHeader'
 import MealPlanner from '@/components/planner/MealPlanner'
-import { getGeneratedImage } from './actions'
 import { RECIPES, type Recipe } from '@/lib/data'
 
-// Pre-fetches all recipe images on the server
-async function getRecipesWithImages(): Promise<Recipe[]> {
-  const recipesWithImages = await Promise.all(
-    RECIPES.map(async (recipe) => {
-      if (recipe.imageUrl.startsWith('https://placehold.co')) {
-        const result = await getGeneratedImage({ prompt: recipe.name })
-        if (result.success && result.data) {
-          return { ...recipe, imageUrl: result.data.imageUrl }
-        }
-      }
-      return recipe
-    })
-  )
-  return recipesWithImages
-}
-
-
 export default async function Home() {
-  const recipes = await getRecipesWithImages();
+  // We will pass the recipes directly without pre-fetching images
+  // to avoid hitting API rate limits on the home page.
+  // Images will now be generated on the recipe detail page.
+  const recipes: Recipe[] = RECIPES;
   
   return (
     <div className="flex h-full flex-col">

@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Bar,
   BarChart,
@@ -31,25 +31,24 @@ import {
 import { getGeneratedImage } from '@/app/actions'
 import { RecipeImage } from '@/components/recipes/RecipeImage'
 
-// This is now a true Server Component that fetches data and passes it to the client component.
-export default function RecipeDetailPage({ params }: { params: { id: string } }) {
-  const recipe = RECIPES.find((r) => r.id === params.id)
-  
+// This component fetches the static data for a recipe
+function RecipeDetailFetcher({ params }: { params: { id: string } }) {
+  const recipe = RECIPES.find((r) => r.id === params.id);
+
   if (!recipe) {
-    notFound()
+    notFound();
   }
 
-  // Pass the fetched data to the client component
-  return <RecipeDetailPageClient recipe={recipe} />;
+  return <RecipeDetailPage recipe={recipe} />;
 }
 
-
-// Client component to render the UI, receiving all data as props.
-function RecipeDetailPageClient({ recipe: initialRecipe }: { recipe: Recipe }) {
+// This is the main page component that renders the UI
+function RecipeDetailPage({ recipe: initialRecipe }: { recipe: Recipe }) {
   const [recipe, setRecipe] = useState(initialRecipe);
 
   useEffect(() => {
     async function fetchImage() {
+      // Only fetch if it's a placeholder
       if (recipe.imageUrl.startsWith('https://placehold.co')) {
         const result = await getGeneratedImage({ prompt: recipe.name });
         if (result.success && result.data) {
@@ -199,3 +198,5 @@ function RecipeDetailPageClient({ recipe: initialRecipe }: { recipe: Recipe }) {
     </div>
   )
 }
+
+export default RecipeDetailFetcher;

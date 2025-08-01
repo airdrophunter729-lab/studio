@@ -131,7 +131,7 @@ export default function MealPlanner({ recipes }: { recipes: Recipe[] }) {
                         >
                           {recipe ? (
                             <>
-                              <Image src={recipe.imageUrl} alt={recipe.name} fill className="rounded-md object-cover opacity-20"/>
+                              <RecipeImage recipe={recipe} className="rounded-md object-cover opacity-20" />
                               <div className="relative z-10 flex h-full flex-col justify-between">
                                 <p className="text-xs font-semibold">{recipe.name}</p>
                                 <Button

@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Card,
@@ -12,12 +13,30 @@ import { Badge } from '@/components/ui/badge';
 import type { Recipe } from '@/lib/types';
 import { Clock } from 'lucide-react';
 import { RecipeImage } from './RecipeImage';
+import { getGeneratedImage } from '@/app/actions';
+
 
 type RecipeCardProps = {
   recipe: Recipe;
 };
 
-export function RecipeCard({ recipe }: RecipeCardProps) {
+export function RecipeCard({ recipe: initialRecipe }: RecipeCardProps) {
+  const [recipe, setRecipe] = useState(initialRecipe);
+
+  useEffect(() => {
+    async function fetchImage() {
+      if (recipe.imageUrl.startsWith('https://placehold.co')) {
+        const result = await getGeneratedImage({ prompt: recipe.name });
+        if (result.success && result.data) {
+          setRecipe(prev => ({...prev, imageUrl: result.data.imageUrl}));
+        }
+      }
+    }
+    // We don't generate images on the recipe list page anymore to avoid rate limiting.
+    // User can click to see the full image on the detail page.
+    // fetchImage(); 
+  }, []); // Run only once
+
   return (
     <Link href={`/recipes/${recipe.id}`} className="group">
       <Card className="h-full overflow-hidden transition-all duration-300 ease-in-out group-hover:shadow-lg group-hover:-translate-y-1">
